@@ -13,11 +13,13 @@
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script>
-        var SUPABASE_URL = '<YOUR SUPABASE URL>'
-        var SUPABASE_KEY =
-            '<YOUR SUPABASE KEY>'
-
-        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+        let supabaseClient
+        function initializeSupabase() {
+            let queryParams = new URLSearchParams(window.location.search);
+            SUPABASE_URL = `https://${queryParams.get("SUPABASE_URL")}.supabase.co`;
+            SUPABASE_KEY = queryParams.get("SUPABASE_KEY")
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+        }
 
         function renderTable(data) {
             const tbl = document.querySelector('#appState')
@@ -39,7 +41,7 @@
         }
 
         function subscribeAppState() {
-            subscription1 = supabase
+            subscription1 = supabaseClient
                 .from('app_state')
                 .on('UPDATE', (v) => { console.log('UPDATE on app_state', v); reportDataChange(v) })
                 .on('INSERT', (v) => { console.log('INSERT on app_state', v); reportDataChange(v) })
@@ -48,7 +50,7 @@
         }
 
         async function refreshData() {
-            let { data, error } = await supabase
+            let { data, error } = await supabaseClient
                 .from('app_state')
                 .select('name, data,id')
                 .range(0, 10)
@@ -60,6 +62,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', async function (event) {
+            initializeSupabase()
             refreshData()
             subscribeAppState()
         })
