@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <meta charset="utf-8" />
+    <title>The Page Returned by Making Http Call to Node.js</title>
+    <style type="text/css">
+        table,
+        td {
+            border: double;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script>
+        var SUPABASE_URL = '<YOUR SUPABASE URL>'
+        var SUPABASE_KEY =
+            '<YOUR SUPABASE KEY>'
+
+        var supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+        function renderTable(data) {
+            const tbl = document.querySelector('#appState')
+            tbl.innerHTML = `<th><td>Id:</td><td>Name:</td><td>Data:</td></th>`
+            data.forEach((record, index) => {
+                console.log(record.name)
+                var row = tbl.insertRow(index + 1);
+                row.insertCell(0).innerHTML = index;
+                row.insertCell(1).innerHTML = record.id;
+                row.insertCell(2).innerHTML = record.name;
+                row.insertCell(3).innerHTML = JSON.stringify(record.data);
+            })
+        }
+
+        function reportDataChange(change) {
+            const div = document.querySelector('#breakingNews')
+            const changeReport = `${change.eventType} at ${change.commit_timestamp} of record with id ${change.eventType == "DELETE" ? change.old.id : change.new.id + " and name " + change.new.name}`
+            div.innerHTML = changeReport
+        }
+
+        function subscribeAppState() {
+            subscription1 = supabase
+                .from('app_state')
+                .on('UPDATE', (v) => { console.log('UPDATE on app_state', v); reportDataChange(v) })
+                .on('INSERT', (v) => { console.log('INSERT on app_state', v); reportDataChange(v) })
+                .on('DELETE', (v) => { console.log('DELETE on app_state', v); reportDataChange(v) })
+                .subscribe((change) => console.log('app_state changed', change))
+        }
+
+        async function refreshData() {
+            let { data, error } = await supabase
+                .from('app_state')
+                .select('name, data,id')
+                .range(0, 10)
+            if (error) {
+                console.error(error)
+                return
+            }
+            renderTable(data)
+        }
+
+        document.addEventListener('DOMContentLoaded', async function (event) {
+            refreshData()
+            subscribeAppState()
+        })
+    </script>
+</head>
+
+<body>
+    <h1>App State Contents</h1>
+    <table id="appState"></table>
+    <h3>Latest Change</h3>
+    <div id="breakingNews"></div>
+    <br /><br />
+    <button id="refresh" onclick="refreshData()">Refresh</button>
+</body>
+
+</html>
